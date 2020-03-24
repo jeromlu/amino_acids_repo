@@ -1,0 +1,29 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+<file alias="main_window_icon.png">resources/icons/amino-acids-icon-positive.png</file>
+<file alias="AA_data.pkl">resources/AA_data.pkl</file>
+<file alias="AA_data.xlsx">resources/AA_data.xlsx</file>
+<file alias="isoleucine.png">resources\amino_acid_pictures\isoleucine.png</file>
+<file alias="phenylalanine.png">resources\amino_acid_pictures\phenylalanine.png</file>
+<file alias="aspargine.png">resources\amino_acid_pictures\aspargine.png</file>
+<file alias="threonine.png">resources\amino_acid_pictures\threonine.png</file>
+<file alias="serine.png">resources\amino_acid_pictures\serine.png</file>
+<file alias="glutamic_acid.png">resources\amino_acid_pictures\glutamic_acid.png</file>
+<file alias="tryptophan.png">resources\amino_acid_pictures\tryptophan.png</file>
+<file alias="valine.png">resources\amino_acid_pictures\valine.png</file>
+<file alias="tyrosine.png">resources\amino_acid_pictures\tyrosine.png</file>
+<file alias="alanine.png">resources\amino_acid_pictures\alanine.png</file>
+<file alias="leucine.png">resources\amino_acid_pictures\leucine.png</file>
+<file alias="methionine.png">resources\amino_acid_pictures\methionine.png</file>
+<file alias="glutamine.png">resources\amino_acid_pictures\glutamine.png</file>
+<file alias="cysteine.png">resources\amino_acid_pictures\cysteine.png</file>
+<file alias="glycine.png">resources\amino_acid_pictures\glycine.png</file>
+<file alias="selenocysteine.png">resources\amino_acid_pictures\selenocysteine.png</file>
+<file alias="proline.png">resources\amino_acid_pictures\proline.png</file>
+<file alias="aspartic_acid.png">resources\amino_acid_pictures\aspartic_acid.png</file>
+<file alias="lysine.png">resources\amino_acid_pictures\lysine.png</file>
+<file alias="histidine.png">resources\amino_acid_pictures\histidine.png</file>
+<file alias="arginine.png">resources\amino_acid_pictures\arginine.png</file>
+<file alias="phenylalanone.png">resources\amino_acid_pictures\phenylalanone.png</file>
+</qresource>
+</RCC>
