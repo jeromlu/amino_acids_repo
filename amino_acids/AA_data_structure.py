@@ -52,7 +52,6 @@ class AminoAcids(object):
             AA_df = pd.read_pickle(f, compression = None)
         #AA_df = pd.read_pickle(DATA_LOCATION + PKL_FILE_NAME)
 
-        
         for name, row in AA_df.iterrows():
             
             #prepare data about AA

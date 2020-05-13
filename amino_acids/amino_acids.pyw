@@ -22,8 +22,8 @@ from PyQt5.QtGui import QImage, QIcon, QPixmap
 from PyQt5.QtCore import QSize, Qt, QTimer, QThread, pyqtSignal
 
 # **************************Local imports*****************************************
-import AA_data_structure
-from settings_dialog import SettingsDialog
+from amino_acids import AA_data_structure
+from amino_acids.settings_dialog import SettingsDialog
 import qrc_resources
 
 
@@ -88,7 +88,6 @@ class AminoAcidsUI(QMainWindow):
         self.AA_pb.setValue(0)
         self.AA_pb.setMaximum(len(self.amino_acids) - 1)
         self.timer_pb = QProgressBar()
-
 
         pb_vbox = QVBoxLayout()
         pb_vbox.addWidget(self.AA_pb)
@@ -199,6 +198,7 @@ class AminoAcidsUI(QMainWindow):
             print("No amino acid.")
         self.combo_AA_list.setEnabled(True)
         self.combo_AA_list.blockSignals(False)
+
     def select_AA(self, idx="rnd"):
         """Selects amino acid by:
             - random
@@ -234,6 +234,7 @@ class AminoAcidsUI(QMainWindow):
             return
         self.show_image(True)
         self.update_info_text(True)
+
     def show_image(self, show=True):
         print(show, self.amino_acid)
         if show and self.amino_acid:
@@ -243,6 +244,7 @@ class AminoAcidsUI(QMainWindow):
         else:
             print("clear")
             self.image_label_AA.clear()
+
     def update_info_text(self, update_all=True):
 
         lst_info = [
@@ -332,6 +334,7 @@ class ExerciseThread(QThread):
                 self.update_time_pb.emit()
             self.answer_AA.emit()
             self.sleep(5)
+
 
 if __name__ == "__main__":
 
