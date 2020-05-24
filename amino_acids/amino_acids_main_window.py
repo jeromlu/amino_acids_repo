@@ -22,9 +22,11 @@ from PyQt5.QtGui import QImage, QIcon, QPixmap
 from PyQt5.QtCore import QSize, Qt, QTimer, QThread, pyqtSignal
 
 # **************************Local imports*****************************************
-from amino_acids import AA_data_structure
+from amino_acids.AA_data_structure import AminoAcids
 from amino_acids.settings_dialog import SettingsDialog
-import qrc_resources
+from amino_acids import qrc_resources
+from amino_acids import utils
+from amino_acids.exercise_thread import ExerciseThread
 
 
 class AminoAcidsUI(QMainWindow):
@@ -32,17 +34,18 @@ class AminoAcidsUI(QMainWindow):
         super(AminoAcidsUI, self).__init__(parent)
 
         # data initialization
-        self.amino_acids = AA_data_structure.AminoAcids()
+        self.amino_acids = AminoAcids()
         self.amino_acids.load_data()
         self.current_AA_idx = None
         self.indices = []
         self.amino_acid = None
         self.settings = {
             "show_only": "Letter_label",
-            "seconds": "inf",
+            "seconds": 1,  # "inf",
             "AA_repetition": True,  # se ne dela
             "AA_num_to_test": 10,
         }
+        self.exer_thread = None
 
         # UI initialization
         self.create_main_window()
@@ -86,8 +89,14 @@ class AminoAcidsUI(QMainWindow):
         self.combo_AA_list.addItems(self.amino_acids.get_AA_names())
         self.AA_pb = QProgressBar()
         self.AA_pb.setValue(0)
-        self.AA_pb.setMaximum(len(self.amino_acids) - 1)
+        self.AA_pb.setMaximum(self.settings["AA_num_to_test"])
+        self.AA_pb.setFormat("0/{}".format(self.settings["AA_num_to_test"]))
         self.timer_pb = QProgressBar()
+        self.timer_pb.setValue(0)
+        self.timer_pb.setMaximum(self.settings["seconds"])
+        self.timer_pb.setFormat("  0/{:3} s".format(self.settings["seconds"]))
+        # self.timer_pb.setFormat("12")
+        print("  0/{:3} s".format(self.settings["seconds"]))
 
         pb_vbox = QVBoxLayout()
         pb_vbox.addWidget(self.AA_pb)
@@ -122,19 +131,19 @@ class AminoAcidsUI(QMainWindow):
         self.setWindowTitle("Amino acids tool")
 
     def start_full_test(self):
-        self.indices = random.sample(
-            range(1, len(self.amino_acids)), len(self.amino_acids) - 1
-        )
-        print(self.indices)
-        self.btn_end.setEnabled(True)
-        self.btn_start.setEnabled(False)
-        self.timer_pb.setValue(0)
-
-        if isinstance(self.settings["seconds"], str):
-            self.btn_next.clicked.disconnect()
-            self.btn_next.clicked.connect(self.remove_index)
-            self.btn_end.clicked.connect(self.exer_thread.wait)
-        else:
+        try:
+            self.indices = random.sample(
+                range(1, len(self.amino_acids)),
+                self.settings["AA_num_to_test"],  # len(self.amino_acids) - 1
+            )
+            print(self.indices)
+            self.btn_end.setEnabled(True)
+            self.btn_start.setEnabled(False)
+            self.btn_next.setEnabled(False)
+            self.btn_show_sol.setEnabled(False)
+            self.timer_pb.setValue(0)
+            self.timer_pb.setFormat("  0/{:3} s".format(self.settings["seconds"]))
+            print(self.settings["seconds"], "  s")
             self.timer_pb.setMaximum(self.settings["seconds"])
             self.exer_thread = ExerciseThread(self.indices, self.settings["seconds"])
             self.exer_thread.new_AA.connect(self.show_next_rnd_AA)
@@ -142,14 +151,10 @@ class AminoAcidsUI(QMainWindow):
             self.exer_thread.answer_AA.connect(self.update_AA_progress_bar)
             self.exer_thread.update_time_pb.connect(self.update_time_progress_bar)
             self.exer_thread.finished.connect(self.exercise_thread_finished)
+            self.btn_end.clicked.connect(self.exer_thread.wait)
             self.exer_thread.start()
-        # self.btn_end.clicked.connect(self.exer_thread.wait)
-
-        # for idx in indices:
-        #    self.show_next_rnd_AA()
-        #    time.sleep(1)#self.settings['seconds'])
-        #    self.show_answer_of_AA()
-        #    self.update_AA_progress_bar()
+        except Exception:
+            utils.print_err()
 
     def remove_index(self):
         if len(self.indices) > 0:
@@ -161,6 +166,8 @@ class AminoAcidsUI(QMainWindow):
     def exercise_thread_finished(self):
         self.btn_end.setEnabled(False)
         self.btn_start.setEnabled(True)
+        self.btn_next.setEnabled(True)
+        self.btn_show_sol.setEnabled(True)
         self.AA_pb.setValue(0)
         self.timer_pb.setValue(0)
         self.btn_next.clicked.disconnect()
@@ -295,45 +302,17 @@ class AminoAcidsUI(QMainWindow):
         value = self.AA_pb.value() + 1
         print("updated to ", value)
         self.AA_pb.setValue(value)
+        self.AA_pb.setFormat("{}/{}".format(value, self.settings["AA_num_to_test"]))
 
     def update_time_progress_bar(self):
         value = self.timer_pb.value() + 1
         self.timer_pb.setValue(value)
+        self.timer_pb.setFormat("{:3}/{:3} s".format(value, self.settings["seconds"]))
 
     def set_settings(self):
-        print(self.settings)
         dialog = SettingsDialog(self.settings, self)
         if dialog.exec_():
-            print(dialog.settings)
             self.settings = dialog.settings
-
-    def closeEvent(self, evnt):
-        QApplication.quit()
-
-
-class ExerciseThread(QThread):
-
-    new_AA = pyqtSignal(int)
-    answer_AA = pyqtSignal()
-    update_time_pb = pyqtSignal()
-
-    def __init__(self, lst_of_idx, time_sec):
-        super(ExerciseThread, self).__init__()
-        self.indices = lst_of_idx
-        self.time_sec = time_sec
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        for idx in self.indices:
-            print("thread idx ", idx)
-            self.new_AA.emit(idx)
-            for i in range(self.time_sec):
-                self.sleep(1)
-                self.update_time_pb.emit()
-            self.answer_AA.emit()
-            self.sleep(5)
 
 
 if __name__ == "__main__":
