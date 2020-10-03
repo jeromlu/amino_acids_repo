@@ -35,6 +35,9 @@ class AminoAcid(object):
         pKa1,
         pKa2,
         pKa,
+        hydropathy_idx=None,
+        classification=None,
+        side_chain=None,
         skeletal_formula=None,
     ):
 
@@ -46,7 +49,10 @@ class AminoAcid(object):
         self.pKa1 = pKa1
         self.pKa2 = pKa2
         self.pKa = pKa
+        self.hydropathy_idx = hydropathy_idx
         self.skeletal_formula = skeletal_formula
+        self.amino_acid.classification = classification
+        self.amino_acid.side_chain = side_chain
 
 
 class AminoAcids(object):
@@ -78,6 +84,9 @@ class AminoAcids(object):
             pKa1 = row.pKa1
             pKa2 = row.pKa2
             pKa = row.pKa
+            hydropathy_idx = row["Hydropathy index"]
+            ww_volume = row["van der waals volume (A)"]
+            side_chain_class = row["side_chain"]
 
             # fname = FIGURES_LOCATION + name.lower() + '.png'
             fname = ":/" + name.lower() + ".png"
@@ -94,6 +103,7 @@ class AminoAcids(object):
                 pKa1,
                 pKa2,
                 pKa,
+                hydropathy_idx,
                 skeletal_formula,
             )
 

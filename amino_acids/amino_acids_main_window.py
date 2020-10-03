@@ -15,7 +15,7 @@ import random
 # **************************Third party imports***********************************
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QHBoxLayout
 from PyQt5.QtWidgets import QSizePolicy, QPushButton, QDialog, QVBoxLayout, QFrame
-from PyQt5.QtWidgets import QComboBox, QProgressBar
+from PyQt5.QtWidgets import QComboBox, QProgressBar, QMessageBox
 
 from PyQt5.QtGui import QImage, QIcon, QPixmap
 
@@ -41,16 +41,26 @@ class AminoAcidsUI(QMainWindow):
         self.amino_acid = None
         self.settings = {
             "show_only": "Letter_label",
-            "seconds": 1,  # "inf",
+            "seconds": 45,  # "inf",
             "AA_repetition": True,  # se ne dela
-            "AA_num_to_test": 10,
+            "AA_num_to_test": 2,
         }
-        self.exer_thread = None
 
         # UI initialization
         self.create_main_window()
 
-        # slots and actions connections
+        # secon thread
+        self.exer_thread = ExerciseThread(self)
+
+        # connections
+        # secondary thread connections
+        self.exer_thread.new_AA.connect(self.show_next_rnd_AA)
+        self.exer_thread.new_AA.connect(self.update_AA_progress_bar)
+        self.exer_thread.answer_AA.connect(self.show_answer_of_AA)
+        self.exer_thread.update_time_pb.connect(self.update_time_progress_bar)
+        self.exer_thread.finished.connect(self.exercise_thread_finished)
+        # other connections
+        self.btn_end.clicked.connect(self.on_btn_end)
         self.combo_AA_list.currentTextChanged.connect(self.populate_UI_w_AA_info)
         self.btn_next.clicked.connect(self.show_next_rnd_AA)
         self.btn_start.clicked.connect(self.start_full_test)
@@ -136,25 +146,41 @@ class AminoAcidsUI(QMainWindow):
                 range(1, len(self.amino_acids)),
                 self.settings["AA_num_to_test"],  # len(self.amino_acids) - 1
             )
-            print(self.indices)
+            # print(self.indices)
             self.btn_end.setEnabled(True)
             self.btn_start.setEnabled(False)
-            self.btn_next.setEnabled(False)
+            # self.btn_next.setEnabled(False)
             self.btn_show_sol.setEnabled(False)
+            self.btn_settings.setEnabled(True)
             self.timer_pb.setValue(0)
             self.timer_pb.setFormat("  0/{:3} s".format(self.settings["seconds"]))
-            print(self.settings["seconds"], "  s")
+            self.AA_pb.setValue(0)
+            self.AA_pb.setFormat(
+                "{}/{}".format(self.AA_pb.value(), self.settings["AA_num_to_test"])
+            )
+            # print(self.settings["seconds"], "  s")
             self.timer_pb.setMaximum(self.settings["seconds"])
-            self.exer_thread = ExerciseThread(self.indices, self.settings["seconds"])
-            self.exer_thread.new_AA.connect(self.show_next_rnd_AA)
-            self.exer_thread.answer_AA.connect(self.show_answer_of_AA)
-            self.exer_thread.answer_AA.connect(self.update_AA_progress_bar)
-            self.exer_thread.update_time_pb.connect(self.update_time_progress_bar)
-            self.exer_thread.finished.connect(self.exercise_thread_finished)
-            self.btn_end.clicked.connect(self.exer_thread.wait)
+            self.exer_thread.initialize(self.indices, self.settings["seconds"])
+            self.btn_next.clicked.disconnect()
+            self.btn_next.clicked.connect(self.on_btn_nxt_during_thread)
+            # print("before start")
             self.exer_thread.start()
         except Exception:
             utils.print_err()
+
+    def on_btn_nxt_during_thread(self):
+        try:
+            # self.exer_thread.new_AA.emit()
+            self.remove_index()
+        except Exception:
+            utils.print_err()
+
+    def on_btn_end(self):
+        if self.exer_thread.isRunning():
+            self.exer_thread.stop()
+            self.exercise_thread_finished()
+        else:
+            print("not running")
 
     def remove_index(self):
         if len(self.indices) > 0:
@@ -164,18 +190,27 @@ class AminoAcidsUI(QMainWindow):
             self.exercise_thread_finished()
 
     def exercise_thread_finished(self):
+        print("finished wait")
+        self.exer_thread.wait()
+        print("finished")
         self.btn_end.setEnabled(False)
         self.btn_start.setEnabled(True)
         self.btn_next.setEnabled(True)
         self.btn_show_sol.setEnabled(True)
+        self.btn_settings.setEnabled(True)
         self.AA_pb.setValue(0)
+        self.AA_pb.setFormat("0/{}".format(self.settings["AA_num_to_test"]))
         self.timer_pb.setValue(0)
+        self.timer_pb.setFormat("  0/{:3} s".format(self.settings["seconds"]))
+        if self.exer_thread.completed:
+            QMessageBox.information(
+                self, "Congratulations!", "You have completed whole exercise set."
+            )
         self.btn_next.clicked.disconnect()
         self.btn_next.clicked.connect(self.show_next_rnd_AA)
 
     def show_next_rnd_AA(self, idx="rnd"):
         self.timer_pb.setValue(0)
-        print("\nnext", idx)
         if idx == False:
             idx = "rnd"
         if not self.select_AA(idx):  # selects random amino acid
@@ -193,10 +228,10 @@ class AminoAcidsUI(QMainWindow):
             self.current_AA_idx = self.combo_AA_list.currentIndex()
         self.combo_AA_list.blockSignals(True)
         self.combo_AA_list.setCurrentIndex(0)
-        print("idx ", self.current_AA_idx)
+        # print("idx ", self.current_AA_idx)
 
     def show_answer_of_AA(self):
-        print("idx ", self.current_AA_idx)
+        # print("idx ", self.current_AA_idx)
         if self.current_AA_idx:
             self.combo_AA_list.setCurrentIndex(self.current_AA_idx)
             self.show_image(True)
@@ -212,7 +247,7 @@ class AminoAcidsUI(QMainWindow):
             - index
             - from combo box name
         """
-        print("select AA ", idx)
+        # print("select AA ", idx)
         if isinstance(idx, int):
             if idx > self.combo_AA_list.count():
                 print("index out of range")
@@ -223,7 +258,7 @@ class AminoAcidsUI(QMainWindow):
             if idx == "rnd":
                 self.current_AA_idx = random.randint(1, len(self.amino_acids) - 1)
                 self.combo_AA_list.setCurrentIndex(self.current_AA_idx)
-                print("idx ", self.current_AA_idx)
+                # print("idx ", self.current_AA_idx)
             else:
                 self.current_AA_idx = self.combo_AA_list.currentIndex()
 
@@ -243,13 +278,11 @@ class AminoAcidsUI(QMainWindow):
         self.update_info_text(True)
 
     def show_image(self, show=True):
-        print(show, self.amino_acid)
+        # print(show, self.amino_acid)
         if show and self.amino_acid:
-            print("true")
             image = self.amino_acid.skeletal_formula
             self.image_label_AA.setPixmap(QPixmap.fromImage(image))
         else:
-            print("clear")
             self.image_label_AA.clear()
 
     def update_info_text(self, update_all=True):
@@ -263,6 +296,9 @@ class AminoAcidsUI(QMainWindow):
             self.amino_acid.pKa1,
             self.amino_acid.pKa2,
             self.amino_acid.pKa,
+            self.amino_acid.hydropathy_idx,
+            self.amino_acid.classification,
+            self.amino_acid.side_chain,
         ]
         lst = ["???"] * len(lst_info)
         if self.settings["show_only"] == "Letter_label":
@@ -281,7 +317,10 @@ class AminoAcidsUI(QMainWindow):
         Isoelectric point: {4}\n
         pKa1 (COOH): {5}\n
         pKa2 (NH2):: {6}\n
-        pKa side_chain: {7}
+        pKa side_chain: {7}\n
+        Hydropathy index: {8}\n
+        Class: {9}\n
+        Side chain: {10}\n
             """
             self.label_AA.setText(txt.format(*lst_info))
         else:
@@ -294,13 +333,14 @@ class AminoAcidsUI(QMainWindow):
         pKa1 (COOH): {5}\n
         pKa2 (NH2): {6}\n
         pKa side_chain: {7}
+        Hydropathy index: {8}\n
+        Class: {9}\n
+        Side chain: {10}\n
             """
             self.label_AA.setText(txt.format(*lst))
 
     def update_AA_progress_bar(self):
-        print("current ", self.AA_pb.value())
         value = self.AA_pb.value() + 1
-        print("updated to ", value)
         self.AA_pb.setValue(value)
         self.AA_pb.setFormat("{}/{}".format(value, self.settings["AA_num_to_test"]))
 
@@ -312,7 +352,18 @@ class AminoAcidsUI(QMainWindow):
     def set_settings(self):
         dialog = SettingsDialog(self.settings, self)
         if dialog.exec_():
-            self.settings = dialog.settings
+            try:
+                self.settings = dialog.settings
+                self.AA_pb.setFormat("0/{}".format(self.settings["AA_num_to_test"]))
+                self.AA_pb.setMaximum(self.settings["AA_num_to_test"])
+                self.timer_pb.setFormat("  0/{:3} s".format(self.settings["seconds"]))
+                self.timer_pb.setMaximum(self.settings["seconds"])
+            except Exception:
+                utils.print_err()
+
+    def closeEvent(self, evt):
+        self.exer_thread.stop()
+        self.exer_thread.wait()
 
 
 if __name__ == "__main__":
